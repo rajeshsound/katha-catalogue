@@ -403,7 +403,7 @@ function saveTitle(){
   if(pendingCover!==undefined)t.cover=pendingCover||"";
   if(!t.sku)t.sku=makeSKU(t);
   if(!isNew&&oldMrp!==t.mrp&&t.mrp){t.mrpHistory=t.mrpHistory||[];t.mrpHistory.push({from:oldMrp,to:t.mrp,ts:Date.now()})}
-  logAct(isNew?"Added":"Updated",t.title);
+  logAct(isNew?"Added":"Updated",t.title,{isbn:t.isbn,language:t.language});
   persist();closeDrawer();renderCat();renderDash();renderRights();
   toast((isNew?"Added ":"Saved ")+t.title);
 }
@@ -413,7 +413,7 @@ function deleteTitle(){
   const t=db.titles.find(x=>x.id===editingId);
   if(!confirm(`Delete “${t.title}” permanently?`))return;
   db.titles=db.titles.filter(x=>x.id!==editingId);
-  logAct("Deleted",t.title);persist();closeDrawer();renderCat();renderDash();renderRights();
+  logAct("Deleted",t.title,{isbn:t.isbn,language:t.language});persist();closeDrawer();renderCat();renderDash();renderRights();
   toast("Deleted "+t.title);
 }
 
@@ -807,7 +807,15 @@ async function initApp(){
     currentUser=u;
     $("loginScreen").classList.add("gone");
     applyRole();initApp();
+  }else if(getUsers().length===0){
+    // First-ever deployment: no staff accounts yet — show setup screen
+    $("loginScreen").classList.remove("gone");
+    $("setupCard").style.display="";
+    $("loginCard").style.display="none";
+    initApp();
   }else{
+    // Staff accounts exist → go to public catalogue
+    // Setup card is never reachable from here; staff use the sign-in link
     enterPublicMode();
   }
 })();
