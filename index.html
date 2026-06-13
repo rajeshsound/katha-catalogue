@@ -229,7 +229,14 @@ body.role-public .pubbar{display:block}
       <label for="remDev" style="margin:0;font-weight:400;font-size:13px;cursor:pointer">Keep me signed in on this device for 30 days</label>
     </div>
     <button class="btn pri" style="width:100%;justify-content:center" onclick="doLogin()">Sign in</button>
-    <div class="lfoot">Forgotten your password? Ask your catalogue admin to reset it.<br><br><button onclick="hideLogin()" style="background:none;border:none;color:var(--teal);font-size:12px;cursor:pointer;text-decoration:underline">← Back to public catalogue</button></div>
+    <div class="lfoot">Forgotten your password? Ask your catalogue admin to reset it.
+      <details style="margin-top:12px;text-align:left">
+        <summary style="cursor:pointer;color:var(--teal);font-size:12px">New staff device? Set it up here</summary>
+        <p style="font-size:12px;color:var(--ink-3);margin:8px 0 6px;line-height:1.5">Load the latest Katha backup file (your admin shares it from SharePoint). This installs the team accounts and catalogue on this device. You still need your own password to sign in.</p>
+        <input type="file" id="bootFile" accept=".json" style="font-size:12px;margin-bottom:6px">
+        <button class="btn sm" onclick="bootstrapDevice()">Set up this device</button>
+      </details>
+      <br><button onclick="hideLogin()" style="background:none;border:none;color:var(--teal);font-size:12px;cursor:pointer;text-decoration:underline">← Back to public catalogue</button></div>
   </div>
 </div>
 
@@ -337,6 +344,14 @@ body.role-public .pubbar{display:block}
 
     <section class="view" id="v-data">
       <div class="vhead"><div><h2>Data &amp; backup</h2><p>Import, export, and protect your single source of truth</p></div></div>
+      <div class="panel need-admin"><h3><span class="dot"></span>Full audit log <span class="tag teal" style="margin-left:4px">Admin</span></h3>
+        <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+          <select id="auditFilter" onchange="renderAudit()" style="width:auto;min-width:140px"><option value="">All actions</option><option>Login</option><option>Logout</option><option>Added</option><option>Updated</option><option>Deleted</option><option>Imported</option><option>Published</option><option>Team</option></select>
+          <select id="auditUser" onchange="renderAudit()" style="width:auto;min-width:140px"><option value="">All users</option></select>
+          <button class="btn sm" onclick="exportAuditCSV()">Export CSV</button>
+        </div>
+        <div class="tbl-wrap" style="max-height:340px;overflow-y:auto"><table class="tbl"><thead><tr><th>Time</th><th>User</th><th>Role</th><th>Action</th><th>Detail</th></tr></thead><tbody id="auditBody"></tbody></table></div>
+      </div>
       <div class="panel need-admin"><h3><span class="dot"></span>Import from Excel <span class="tag teal" style="margin-left:4px">Admin</span></h3>
         <p class="note" style="margin:0 0 10px">Reads .xlsx files. Recognises Katha's existing column headings (Title, Language, Author, Illustrator, Translator, Edited By, Availability, Price, ISBN, PDF Link, Theme, Age…). Rows with a matching Title + Language update the existing record; new ones are added.</p>
         <input type="file" id="impFile" accept=".xlsx,.xls" style="max-width:340px">

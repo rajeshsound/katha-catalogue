@@ -51,11 +51,19 @@ async function doLogin(){
   const ok=u&&(await sha256(u.salt+pw))===u.hash;
   if(!ok){
     const l=getLock();l.fails=(l.fails||0)+1;
-    if(l.fails>=5){l.until=Date.now()+5*60*1000;l.fails=0;setLock(l);return fail("Too many failed attempts — sign-in locked for 5 minutes")}
+    const sec=JSON.parse(localStorage.getItem("katha_sec")||"[]");
+    sec.unshift({ts:Date.now(),event:"FailedLogin",username:uname});
+    if(l.fails>=5){l.until=Date.now()+5*60*1000;l.fails=0;setLock(l);
+      sec.unshift({ts:Date.now(),event:"LockoutTriggered",username:uname});
+      localStorage.setItem("katha_sec",JSON.stringify(sec.slice(0,100)));
+      return fail("Too many failed attempts — sign-in locked for 5 minutes")}
+    localStorage.setItem("katha_sec",JSON.stringify(sec.slice(0,100)));
     setLock(l);return fail("Incorrect username or password ("+(5-l.fails)+" attempts left)");
   }
   setLock({fails:0,until:0});err.classList.remove("on");
-  u.lastLogin=Date.now();const us=getUsers();const i=us.findIndex(x=>x.id===u.id);us[i]=u;setUsers(us);
+  u.lastLogin=Date.now();u.loginCount=(u.loginCount||0)+1;
+  const us=getUsers();const i=us.findIndex(x=>x.id===u.id);us[i]=u;setUsers(us);
+  window._pendingLogin={ts:Date.now(),action:"Login",detail:"Signed in",user:u.username,name:u.name,role:u.role};
   startSession(u,$("remDev").checked);
 }
 function startSession(u,remember){
@@ -107,6 +115,7 @@ async function changePassword(){
   toast("Password updated");
 }
 function signOut(){
+  if(currentUser){logAct("Logout","Signed out");persist()}
   sessionStorage.removeItem(SESSION_KEY);localStorage.removeItem(SESSION_KEY);
   location.reload();
 }
@@ -205,7 +214,14 @@ function persist(){
   clearTimeout(saveT);
   saveT=setTimeout(()=>{idb.transaction("kv","readwrite").objectStore("kv").put(db,"db")},250);
 }
-function logAct(action,detail){const who=currentUser?(" — "+currentUser.name):"";db.activity.unshift({ts:Date.now(),action,detail:detail+who});db.activity=db.activity.slice(0,60)}
+function logAct(action,detail,extra){
+  db.activity.unshift({ts:Date.now(),action,detail,
+    user:currentUser?currentUser.username:"system",
+    name:currentUser?currentUser.name:"System",
+    role:currentUser?currentUser.role:"",
+    ...(extra||{})});
+  db.activity=db.activity.slice(0,200);
+}
 
 /* ---------- helpers ---------- */
 const $=id=>document.getElementById(id);
@@ -237,6 +253,7 @@ function go(v){
   document.querySelectorAll(".view").forEach(x=>x.classList.toggle("on",x.id==="v-"+v));
   document.querySelectorAll("#nav button,#mnav button").forEach(b=>b.classList.toggle("on",b.dataset.v===v));
   if(v==="dash")renderDash();if(v==="cat")renderCat();if(v==="rights")renderRights();if(v==="gen")renderGen();
+  if(v==="data"&&currentUser&&rank(currentUser)>=2)renderAudit();
 }
 document.querySelectorAll("#nav button,#mnav button").forEach(b=>b.onclick=()=>go(b.dataset.v));
 
@@ -262,8 +279,8 @@ function renderDash(){
   if(noBlurb)A+=`<div class="alert-row"><span class="tag amber">Content</span><span>${noBlurb} titles are missing a short blurb — they will appear in generated catalogues without descriptions.</span></div>`;
   $("dashAlerts").innerHTML=A||`<div class="empty" style="padding:18px">Nothing needs attention. Well kept.</div>`;
 
-  $("dashActivity").innerHTML=db.activity.slice(0,8).map(a=>
-    `<div class="alert-row"><span class="tag teal">${esc(a.action)}</span><span>${esc(a.detail)} <span style="color:var(--ink-3)">· ${fmtDate(a.ts)}</span></span></div>`
+  $("dashActivity").innerHTML=db.activity.slice(0,12).map(a=>
+    `<div class="alert-row"><span class="tag ${a.action==="Login"||a.action==="Logout"?"amber":"teal"}">${esc(a.action)}</span><span style="flex:1">${esc(a.detail)} <span style="color:var(--ink-3)">· ${esc(a.name||a.user||"")}${a.role?" ("+esc(a.role)+")":""} · ${fmtDate(a.ts)}</span></span></div>`
   ).join("")||`<div class="empty" style="padding:18px">No activity yet. Import your Excel files from Data &amp; backup, or load sample titles.</div>`;
 }
 
@@ -702,6 +719,33 @@ function exportExcel(){
   XLSX.writeFile(wb,"katha-catalogue-export.xlsx");
   toast("Excel workbook downloaded");
 }
+function renderAudit(){
+  if(!$("auditBody"))return;
+  const fa=$("auditFilter").value, fu=$("auditUser").value;
+  const users=[...new Set(db.activity.map(a=>a.user).filter(Boolean))].sort();
+  $("auditUser").innerHTML='<option value="">All users</option>'+users.map(u=>`<option ${u===fu?"selected":""}>${esc(u)}</option>`).join("");
+  const rows=db.activity.filter(a=>(!fa||a.action===fa)&&(!fu||a.user===fu));
+  let html=rows.map(a=>`
+    <tr><td style="white-space:nowrap;font-size:12px">${new Date(a.ts).toLocaleString("en-IN",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"})}</td>
+      <td><b>${esc(a.name||a.user||"")}</b><div class="t-sub">@${esc(a.user||"")}</div></td>
+      <td><span class="tag ${a.role==="Superadmin"||a.role==="Admin"?"teal":a.role==="Editor"?"green":"gray"}">${esc(a.role||"—")}</span></td>
+      <td>${esc(a.action)}</td>
+      <td>${esc(a.detail||"")}${a.isbn?`<div class="t-sub">ISBN ${esc(a.isbn)}</div>`:""}</td></tr>`).join("");
+  if(!fa&&!fu){
+    const sec=JSON.parse(localStorage.getItem("katha_sec")||"[]");
+    html+=sec.slice(0,20).map(e=>`
+      <tr style="background:var(--red-soft)"><td style="white-space:nowrap;font-size:12px">${new Date(e.ts).toLocaleString("en-IN",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"})}</td>
+      <td><span class="tag red">SECURITY</span></td><td>—</td><td>${esc(e.event)}</td><td>Username tried: ${esc(e.username)}</td></tr>`).join("");
+  }
+  $("auditBody").innerHTML=html||`<tr><td colspan="5"><div class="empty">No entries.</div></td></tr>`;
+}
+function exportAuditCSV(){
+  const sec=JSON.parse(localStorage.getItem("katha_sec")||"[]");
+  const all=[...db.activity.map(a=>({...a,source:"Activity"})),...sec.map(e=>({ts:e.ts,action:e.event,detail:"Username: "+e.username,user:"SECURITY",name:"",role:"",source:"Security"}))].sort((a,b)=>b.ts-a.ts);
+  const csv="Time,Name,Username,Role,Action,Detail,Source\n"+all.map(a=>[new Date(a.ts).toLocaleString("en-IN"),a.name||"",a.user||"",a.role||"",a.action||"",a.detail||"",a.source||""].map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(",")).join("\n");
+  dl(new Blob([csv],{type:"text/csv"}),"katha-audit-"+new Date().toISOString().slice(0,10)+".csv");
+  toast("Audit log exported as CSV");
+}
 function exportPublic(){
   if(rank(currentUser)<2)return toast("Publishing needs an Admin account");
   const PUB=["sku","title","englishTitle","language","baseLanguage","category","series","age","format","isbn","author","illustrator","translator","editor","yearPub","mrp","status","themes","bigIdea","grades","subjects","skills","spice","readingLevel","vibgyor","blurbShort","blurbLong","pages","dimL","dimB","dimW","weight","cover","coverUrl","portalLink","awards"];
@@ -712,7 +756,7 @@ function exportPublic(){
   logAct("Published","Public catalogue snapshot ("+titles.length+" titles)");persist();
   toast("Public catalogue file downloaded");
 }
-function exportJSON(){const out=Object.assign({},db,{_users:getUsers()});dl(new Blob([JSON.stringify(out,null,1)],{type:"application/json"}),"katha-backup-"+new Date().toISOString().slice(0,10)+".json");toast("Backup downloaded (includes team accounts) — keep it safe")}
+function exportJSON(){const out=Object.assign({},db,{_users:getUsers(),_secLog:JSON.parse(localStorage.getItem("katha_sec")||"[]")});dl(new Blob([JSON.stringify(out,null,1)],{type:"application/json"}),"katha-backup-"+new Date().toISOString().slice(0,10)+".json");toast("Backup downloaded (includes team accounts) — keep it safe")}
 function restoreJSON(){
   if(!canImport())return;
   const f=$("resFile").files[0];
@@ -777,15 +821,32 @@ function enterPublicMode(){
 }
 function showLogin(){
   $("loginScreen").classList.remove("gone");
-  if(getUsers().length===0){$("setupCard").style.display="";$("loginCard").style.display="none"}
-  else{$("setupCard").style.display="none";$("loginCard").style.display=""}
+  // SECURITY: never show setup from the public sign-in link. Setup is only
+  // reachable via the secret bootstrap URL on a device with zero accounts.
+  $("setupCard").style.display="none";
+  $("loginCard").style.display="";
 }
 function hideLogin(){$("loginScreen").classList.add("gone")}
+function bootstrapDevice(){
+  const f=$("bootFile").files[0];
+  if(!f)return toast("Choose the Katha backup .json file first");
+  const rd=new FileReader();
+  rd.onload=e=>{try{
+    const d=JSON.parse(e.target.result);
+    if(!d._users||!d._users.length)throw 0;
+    setUsers(d._users);
+    if(d.titles){delete d._users;delete d._secLog;db=d;persist();}
+    toast("Device ready — now sign in with your own username and password");
+    $("bootFile").value="";
+  }catch(_){toast("That file is not a valid Katha backup with team accounts")}};
+  rd.readAsText(f);
+}
 
 /* ---------- boot ---------- */
 async function initApp(){
   const ok=await idbOpen();
   if(ok)await load();
+  if(window._pendingLogin){db.activity.unshift(window._pendingLogin);db.activity=db.activity.slice(0,200);window._pendingLogin=null;persist();}
   const before=db.titles.length;
   db.titles=db.titles.filter(t=>{const x=String(t.title||"").trim();return x.length>=2&&!/^\(?blank\)?(\s*total)?$/i.test(x)&&!/^(grand\s+)?total$/i.test(x)});
   if(db.titles.length!==before)persist();
@@ -807,15 +868,16 @@ async function initApp(){
     currentUser=u;
     $("loginScreen").classList.add("gone");
     applyRole();initApp();
-  }else if(getUsers().length===0){
-    // First-ever deployment: no staff accounts yet — show setup screen
+  }else if(getUsers().length===0&&new URLSearchParams(location.search).get("setup")==="katha-init"){
+    // Bootstrap setup: ONLY via the secret link .../?setup=katha-init AND only
+    // when this device has no accounts. The public never sees this screen.
     $("loginScreen").classList.remove("gone");
     $("setupCard").style.display="";
     $("loginCard").style.display="none";
     initApp();
   }else{
-    // Staff accounts exist → go to public catalogue
-    // Setup card is never reachable from here; staff use the sign-in link
+    // Everyone else — including a fresh device with no accounts — gets the
+    // public catalogue. Staff devices are initialised from a backup file.
     enterPublicMode();
   }
 })();
