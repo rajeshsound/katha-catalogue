@@ -173,6 +173,12 @@ label.inc input{width:auto;margin:0}
 .lfoot{margin-top:14px;font-size:12px;color:var(--ink-3);text-align:center;line-height:1.7}
 .chpw-section{background:var(--bg);border-radius:var(--r);padding:14px 16px;margin-top:6px}
 body.role-viewer .need-edit{display:none!important}
+body.role-public .need-edit,body.role-public .need-auth{display:none!important}
+.need-admin{display:none}
+body.can-admin .need-admin{display:block}
+body.role-public .tbl th:nth-child(7),body.role-public .tbl td:nth-child(7){display:none}
+.pubbar{background:var(--teal-soft);border:1px solid var(--line);border-radius:var(--r-lg);padding:10px 16px;font-size:13px;color:var(--teal-deep);margin-bottom:16px;display:none}
+body.role-public .pubbar{display:block}
 .user-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line-soft);font-size:13.5px;flex-wrap:wrap}
 .user-row:last-child{border-bottom:none}
 .user-row .uname{font-weight:600;min-width:120px}
@@ -199,7 +205,7 @@ body.role-viewer .need-edit{display:none!important}
 <div id="loginScreen">
   <div class="lcard" id="setupCard" style="display:none">
     <div class="logo">Katha</div>
-    <div class="sub">First-time setup<br>Create the administrator account for this catalogue.</div>
+    <div class="sub">First-time setup<br>Create the superadministrator account for this catalogue.</div>
     <div class="lerr" id="serr"></div>
     <div class="field"><label>Your name</label><input id="suName" placeholder="e.g. Rajesh"></div>
     <div class="field"><label>Username (for signing in)</label><input id="suUser" placeholder="e.g. rajesh" autocomplete="username"></div>
@@ -223,7 +229,7 @@ body.role-viewer .need-edit{display:none!important}
       <label for="remDev" style="margin:0;font-weight:400;font-size:13px;cursor:pointer">Keep me signed in on this device for 30 days</label>
     </div>
     <button class="btn pri" style="width:100%;justify-content:center" onclick="doLogin()">Sign in</button>
-    <div class="lfoot">Forgotten your password? Ask your catalogue admin to reset it.</div>
+    <div class="lfoot">Forgotten your password? Ask your catalogue admin to reset it.<br><br><button onclick="hideLogin()" style="background:none;border:none;color:var(--teal);font-size:12px;cursor:pointer;text-decoration:underline">← Back to public catalogue</button></div>
   </div>
 </div>
 
@@ -231,13 +237,13 @@ body.role-viewer .need-edit{display:none!important}
   <aside class="side">
     <div class="brand"><h1>Katha</h1><p>Catalogue &amp; rights desk</p></div>
     <nav class="nav" id="nav">
-      <button data-v="dash" class="on"><span class="spine"></span>Dashboard</button>
+      <button data-v="dash" class="on need-auth"><span class="spine"></span>Dashboard</button>
       <button data-v="cat"><span class="spine"></span>Catalogue</button>
-      <button data-v="rights"><span class="spine"></span>Rights &amp; royalty</button>
+      <button data-v="rights" class="need-auth"><span class="spine"></span>Rights &amp; royalty</button>
       <button data-v="gen"><span class="spine"></span>Generate catalogue</button>
-      <button data-v="data"><span class="spine"></span>Data &amp; backup</button>
+      <button data-v="data" class="need-auth"><span class="spine"></span>Data &amp; backup</button>
     </nav>
-    <div class="side-foot"><div id="whoami" style="margin-bottom:6px"></div>All data stays on this device.<br>Back up from Data &amp; backup.<br><br><button onclick="signOut()" style="background:none;border:none;color:var(--teal);font-size:12px;cursor:pointer;padding:0;text-decoration:underline">Sign out</button></div>
+    <div class="side-foot"><div id="whoami" style="margin-bottom:6px"></div><span class="need-auth">All data stays on this device.<br>Back up from Data &amp; backup.<br><br><button onclick="signOut()" style="background:none;border:none;color:var(--teal);font-size:12px;cursor:pointer;padding:0;text-decoration:underline">Sign out</button></span><button id="staffSignIn" onclick="showLogin()" style="display:none;background:none;border:none;color:var(--teal);font-size:12px;cursor:pointer;padding:0;text-decoration:underline">Katha staff sign in</button></div>
   </aside>
 
   <main class="main">
@@ -251,6 +257,7 @@ body.role-viewer .need-edit{display:none!important}
     </section>
 
     <section class="view" id="v-cat">
+      <div class="pubbar">You are browsing the public Katha catalogue. Search below, or open <b>Generate catalogue</b> to build and print your own selection. Katha staff can sign in from the link in the menu.</div>
       <div class="vhead"><div><h2>Catalogue</h2><p id="catCount"></p></div>
       <button class="btn pri need-edit" onclick="openTitle(null)">+ Add title</button></div>
       <div class="toolbar">
@@ -330,7 +337,7 @@ body.role-viewer .need-edit{display:none!important}
 
     <section class="view" id="v-data">
       <div class="vhead"><div><h2>Data &amp; backup</h2><p>Import, export, and protect your single source of truth</p></div></div>
-      <div class="panel"><h3><span class="dot"></span>Import from Excel</h3>
+      <div class="panel need-admin"><h3><span class="dot"></span>Import from Excel <span class="tag teal" style="margin-left:4px">Admin</span></h3>
         <p class="note" style="margin:0 0 10px">Reads .xlsx files. Recognises Katha's existing column headings (Title, Language, Author, Illustrator, Translator, Edited By, Availability, Price, ISBN, PDF Link, Theme, Age…). Rows with a matching Title + Language update the existing record; new ones are added.</p>
         <input type="file" id="impFile" accept=".xlsx,.xls" style="max-width:340px">
         <div style="margin-top:10px"><button class="btn pri need-edit" onclick="importExcel()">Import file</button></div>
@@ -342,11 +349,11 @@ body.role-viewer .need-edit{display:none!important}
         </div>
         <p class="note" style="margin-top:10px">The Excel export contains three sheets — Catalogue, Rights, Royalty — for selective sharing. The JSON backup contains everything and can be restored below.</p>
       </div>
-      <div class="panel"><h3><span class="dot"></span>Restore from backup</h3>
+      <div class="panel need-admin"><h3><span class="dot"></span>Restore from backup <span class="tag teal" style="margin-left:4px">Admin</span></h3>
         <input type="file" id="resFile" accept=".json" style="max-width:340px">
         <div style="margin-top:10px"><button class="btn need-edit" onclick="restoreJSON()">Restore backup</button></div>
       </div>
-      <div class="panel"><h3><span class="dot"></span>Sample data &amp; reset</h3>
+      <div class="panel need-admin"><h3><span class="dot"></span>Sample data &amp; reset <span class="tag teal" style="margin-left:4px">Admin</span></h3>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <button class="btn need-edit" onclick="loadSample()">Load sample titles</button>
           <button class="btn warn need-edit" onclick="wipeAll()">Erase everything</button>
@@ -363,14 +370,19 @@ body.role-viewer .need-edit{display:none!important}
           <button class="btn pri" onclick="changePassword()">Update my password</button>
         </div>
       </div>
+      <div class="panel need-admin"><h3><span class="dot"></span>Publish public catalogue <span class="tag teal" style="margin-left:4px">Admin</span></h3>
+        <p class="note" style="margin:0 0 10px">Creates <code style="background:var(--bg);padding:2px 6px;border-radius:4px;font-size:12px">catalog-public.json</code> — a safe snapshot for the public site. It includes bibliographic details, themes, pedagogy, specs, blurbs and covers. It <b>excludes</b> all rights, royalty, contract links, internal PDF links and distributor terms. Copy the downloaded file into your GitHub repo folder, then commit and push in GitHub Desktop. Visitors see the new catalogue within a minute.</p>
+        <button class="btn pri" onclick="exportPublic()">Download catalog-public.json</button>
+        <p class="note" id="pubStat" style="margin-top:8px"></p>
+      </div>
       <div class="panel" id="teamPanel" style="display:none"><h3><span class="dot"></span>Team &amp; access <span class="tag teal" style="margin-left:4px">Admin only</span></h3>
-        <p class="note" style="margin:0 0 10px">Add team members, set their role, and reset passwords. <b>Admin</b> can do everything including manage users. <b>Editor</b> can add and edit titles, import and export. <b>Viewer</b> can browse, search and generate catalogues but cannot change anything.</p>
+        <p class="note" style="margin:0 0 10px"><b>Superadmin</b> manages everyone including admins. <b>Admin</b> can import Excel, publish the public catalogue, and invite Editors and Viewers. <b>Editor</b> adds and edits titles, rights and royalty. <b>Viewer</b> is a read-only staff login. The general public needs no account — they see the published catalogue and can generate from it.</p>
         <div id="userList" style="margin-bottom:14px"></div>
         <div class="chpw-section">
           <div class="grid3">
             <div class="field"><label>Name</label><input id="nuName" placeholder="Full name"></div>
             <div class="field"><label>Username</label><input id="nuUser" placeholder="lowercase, no spaces"></div>
-            <div class="field"><label>Role</label><select id="nuRole"><option>Editor</option><option>Viewer</option><option>Admin</option></select></div>
+            <div class="field"><label>Role</label><select id="nuRole"><option>Editor</option><option>Viewer</option></select></div>
           </div>
           <div class="field"><label>Temporary password (share with them; they should change it after first sign-in)</label><input id="nuPw" placeholder="min 8 characters"></div>
           <button class="btn pri" onclick="addUser()">Add team member</button>
@@ -383,11 +395,11 @@ body.role-viewer .need-edit{display:none!important}
 </div>
 
 <nav class="mnav" id="mnav">
-  <button data-v="dash" class="on"><span class="bar"></span>Home</button>
+  <button data-v="dash" class="on need-auth"><span class="bar"></span>Home</button>
   <button data-v="cat"><span class="bar"></span>Catalogue</button>
-  <button data-v="rights"><span class="bar"></span>Rights</button>
+  <button data-v="rights" class="need-auth"><span class="bar"></span>Rights</button>
   <button data-v="gen"><span class="bar"></span>Generate</button>
-  <button data-v="data"><span class="bar"></span>Data</button>
+  <button data-v="data" class="need-auth"><span class="bar"></span>Data</button>
 </nav>
 
 <div class="drawer-bg" id="dbg" onclick="closeDrawer()"></div>

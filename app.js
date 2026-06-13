@@ -3,6 +3,8 @@
 
 /* ---------- auth: multi-user, salted hashes, lockout, roles ---------- */
 const USERS_KEY="katha_users", SESSION_KEY="katha_sess", LOCK_KEY="katha_lock";
+const RANK={Superadmin:3,Admin:2,Editor:1,Viewer:0};
+function rank(u){return u?(RANK[u.role]??0):-1} // -1 = public
 let currentUser=null;
 
 async function sha256(str){
@@ -34,7 +36,7 @@ async function doSetup(){
   if(pw.length<8)return fail("Password must be at least 8 characters");
   if(pw!==pw2)return fail("Passwords don't match");
   const salt=randSalt();
-  const u={id:uid(),name,username:user,role:"Admin",salt,hash:await sha256(salt+pw),createdAt:Date.now()};
+  const u={id:uid(),name,username:user,role:"Superadmin",salt,hash:await sha256(salt+pw),createdAt:Date.now()};
   setUsers([u]);
   err.classList.remove("on");
   startSession(u,true);
@@ -65,16 +67,27 @@ function startSession(u,remember){
   applyRole();initApp();
 }
 function applyRole(){
+  const r=rank(currentUser);
+  document.body.classList.remove("role-public");
   document.body.classList.toggle("role-viewer",currentUser.role==="Viewer");
+  document.body.classList.toggle("can-admin",r>=2);
+  $("staffSignIn").style.display="none";
   const w=$("whoami");
-  if(w)w.innerHTML=`<b style="color:var(--ink)">${esc(currentUser.name)}</b><br><span class="tag ${currentUser.role==="Admin"?"teal":currentUser.role==="Editor"?"green":"gray"}" style="margin-top:3px;display:inline-block">${currentUser.role}</span>`;
+  if(w)w.innerHTML=`<b style="color:var(--ink)">${esc(currentUser.name)}</b><br><span class="tag ${r>=2?"teal":r===1?"green":"gray"}" style="margin-top:3px;display:inline-block">${currentUser.role}</span>`;
   const tp=$("teamPanel");
-  if(tp)tp.style.display=currentUser.role==="Admin"?"":"none";
-  if(currentUser.role==="Admin")renderUsers();
+  if(tp)tp.style.display=r>=2?"":"none";
+  const sel=$("nuRole");
+  if(sel)sel.innerHTML=(r>=3?["Admin","Editor","Viewer"]:["Editor","Viewer"]).map(x=>`<option>${x}</option>`).join("");
+  if(r>=2)renderUsers();
 }
 function canEdit(){
-  if(currentUser&&currentUser.role!=="Viewer")return true;
-  toast("Your account is view-only — ask an admin for Editor access");return false;
+  if(rank(currentUser)>=1)return true;
+  toast(currentUser?"Your account is view-only — ask an admin for Editor access":"Katha staff can sign in to edit the catalogue");
+  return false;
+}
+function canImport(){
+  if(rank(currentUser)>=2)return true;
+  toast("Importing and bulk changes need an Admin account");return false;
 }
 function togglePw(){
   const i=$("loginPw");
@@ -105,8 +118,8 @@ function renderUsers(){
     <div class="user-row">
       <span class="uname">${esc(u.name)}${u.disabled?' <span class="tag red">disabled</span>':""}</span>
       <span style="color:var(--ink-3);font-size:12.5px">@${esc(u.username)}</span>
-      <select onchange="setRole('${u.id}',this.value)" ${u.id===currentUser.id?"disabled":""}>
-        ${["Admin","Editor","Viewer"].map(r=>`<option ${u.role===r?"selected":""}>${r}</option>`).join("")}
+      <select onchange="setRole('${u.id}',this.value)" ${u.id===currentUser.id||(rank(currentUser)<3&&RANK[u.role]>=2)?"disabled":""}>
+        ${["Superadmin","Admin","Editor","Viewer"].filter(r=>RANK[r]<=rank(currentUser)||r===u.role).map(r=>`<option ${u.role===r?"selected":""}>${r}</option>`).join("")}
       </select>
       <span style="flex:1"></span>
       <button class="btn sm" onclick="resetUserPw('${u.id}')">Reset password</button>
@@ -114,8 +127,10 @@ function renderUsers(){
     </div>`).join("");
 }
 async function addUser(){
-  if(currentUser.role!=="Admin")return;
-  const name=$("nuName").value.trim(),uname=$("nuUser").value.trim().toLowerCase(),role=$("nuRole").value,pw=$("nuPw").value;
+  if(rank(currentUser)<2)return;
+  let role=$("nuRole").value;
+  if(rank(currentUser)<3&&RANK[role]>=2)role="Editor"; // admins may only invite Editors/Viewers
+  const name=$("nuName").value.trim(),uname=$("nuUser").value.trim().toLowerCase(),pw=$("nuPw").value;
   if(!name||!uname)return toast("Name and username are required");
   if(/\s/.test(uname))return toast("Username cannot contain spaces");
   if(pw.length<8)return toast("Temporary password must be at least 8 characters");
@@ -129,9 +144,10 @@ async function addUser(){
   renderUsers();toast(`Added ${name} — share their username and temporary password with them`);
 }
 async function resetUserPw(id){
-  if(currentUser.role!=="Admin")return;
+  if(rank(currentUser)<2)return;
   const us=getUsers(),i=us.findIndex(x=>x.id===id);
   if(i<0)return;
+  if(rank(currentUser)<3&&RANK[us[i].role]>=2&&us[i].id!==currentUser.id)return toast("Only a Superadmin can manage Admin accounts");
   const pw=prompt(`New temporary password for ${us[i].name} (min 8 characters):`);
   if(pw===null)return;
   if(pw.length<8)return toast("Password must be at least 8 characters");
@@ -140,19 +156,21 @@ async function resetUserPw(id){
   toast(`Password reset for ${us[i].name} — share the new one with them`);
 }
 function setRole(id,role){
-  if(currentUser.role!=="Admin")return;
+  if(rank(currentUser)<2)return;
   const us=getUsers(),i=us.findIndex(x=>x.id===id);
   if(i<0)return;
-  if(us[i].role==="Admin"&&role!=="Admin"&&us.filter(u=>u.role==="Admin"&&!u.disabled).length<=1){renderUsers();return toast("There must always be at least one active admin")}
+  if(rank(currentUser)<3&&(RANK[us[i].role]>=2||RANK[role]>=2)){renderUsers();return toast("Only a Superadmin can manage Admin roles")}
+  if(us[i].role==="Superadmin"&&role!=="Superadmin"&&us.filter(u=>u.role==="Superadmin"&&!u.disabled).length<=1){renderUsers();return toast("There must always be at least one active Superadmin")}
   us[i].role=role;setUsers(us);
   logAct("Team",`${us[i].name} is now ${role}`);persist();
   renderUsers();toast(`${us[i].name} is now ${role}`);
 }
 function toggleUser(id){
-  if(currentUser.role!=="Admin")return;
+  if(rank(currentUser)<2)return;
   const us=getUsers(),i=us.findIndex(x=>x.id===id);
   if(i<0)return;
-  if(!us[i].disabled&&us[i].role==="Admin"&&us.filter(u=>u.role==="Admin"&&!u.disabled).length<=1)return toast("There must always be at least one active admin");
+  if(rank(currentUser)<3&&RANK[us[i].role]>=2)return toast("Only a Superadmin can manage Admin accounts");
+  if(!us[i].disabled&&us[i].role==="Superadmin"&&us.filter(u=>u.role==="Superadmin"&&!u.disabled).length<=1)return toast("There must always be at least one active Superadmin");
   us[i].disabled=!us[i].disabled;setUsers(us);
   logAct("Team",`${us[i].disabled?"Disabled":"Re-enabled"} ${us[i].name}`);persist();
   renderUsers();toast(`${us[i].name} ${us[i].disabled?"disabled":"re-enabled"}`);
@@ -312,6 +330,7 @@ document.querySelectorAll("#dTabs button").forEach(b=>b.onclick=()=>{
   document.querySelectorAll(".dtab").forEach(x=>x.classList.toggle("on",x.id==="t-"+b.dataset.t));
 });
 function openTitle(id,tab){
+  if(!currentUser){toast("This is the public catalogue — use Generate catalogue to build a printable list");return}
   editingId=id;
   const t=id?db.titles.find(x=>x.id===id):{};
   $("dTitle").textContent=id?t.title:"New title";
@@ -572,7 +591,7 @@ function mapRow(row){
   return out;
 }
 function importExcel(){
-  if(!canEdit())return;
+  if(!canImport())return;
   const f=$("impFile").files[0];
   if(!f)return toast("Choose an .xlsx file first");
   const rd=new FileReader();
@@ -683,9 +702,19 @@ function exportExcel(){
   XLSX.writeFile(wb,"katha-catalogue-export.xlsx");
   toast("Excel workbook downloaded");
 }
+function exportPublic(){
+  if(rank(currentUser)<2)return toast("Publishing needs an Admin account");
+  const PUB=["sku","title","englishTitle","language","baseLanguage","category","series","age","format","isbn","author","illustrator","translator","editor","yearPub","mrp","status","themes","bigIdea","grades","subjects","skills","spice","readingLevel","vibgyor","blurbShort","blurbLong","pages","dimL","dimB","dimW","weight","cover","coverUrl","portalLink","awards"];
+  const titles=db.titles.map(t=>{const o={};PUB.forEach(k=>{if(t[k]!==undefined&&t[k]!==""&&t[k]!==null)o[k]=t[k]});return o});
+  const out={publishedAt:new Date().toISOString(),count:titles.length,titles};
+  dl(new Blob([JSON.stringify(out)],{type:"application/json"}),"catalog-public.json");
+  const p=$("pubStat");if(p)p.textContent="Downloaded "+titles.length+" titles. Now copy catalog-public.json into your GitHub repo folder, commit and push.";
+  logAct("Published","Public catalogue snapshot ("+titles.length+" titles)");persist();
+  toast("Public catalogue file downloaded");
+}
 function exportJSON(){const out=Object.assign({},db,{_users:getUsers()});dl(new Blob([JSON.stringify(out,null,1)],{type:"application/json"}),"katha-backup-"+new Date().toISOString().slice(0,10)+".json");toast("Backup downloaded (includes team accounts) — keep it safe")}
 function restoreJSON(){
-  if(!canEdit())return;
+  if(!canImport())return;
   const f=$("resFile").files[0];
   if(!f)return toast("Choose a backup .json file first");
   const rd=new FileReader();
@@ -699,7 +728,7 @@ function restoreJSON(){
   rd.readAsText(f);
 }
 function wipeAll(){
-  if(!canEdit())return;
+  if(!canImport())return;
   if(!confirm("Erase ALL data on this device? Export a backup first if you need one."))return;
   db={meta:{seq:0,updatedAt:null},titles:[],activity:[]};
   persist();renderDash();renderCat();renderRights();renderGen();
@@ -708,7 +737,7 @@ function wipeAll(){
 
 /* ---------- sample data ---------- */
 function loadSample(){
-  if(!canEdit())return;
+  if(!canImport())return;
   const S=[
     {title:"The Whispering Palms",language:"English",category:"Children",age:"6+",author:"Geeta Dharmarajan",illustrator:"Atanu Roy",yearPub:2019,mrp:195,status:"In Print",themes:["Environment","Coastal life"],series:"Picture Book",bigIdea:"Interdependence",grades:["2","3","4"],subjects:["EVS","Language"],blurbShort:"A young girl in a fishing village learns to listen to what the palms have been saying all along — a gentle story about noticing the natural world.",isbn:"9788189934521",rights:{holder:"Geeta Dharmarajan",holderIl:"Atanu Roy",year:2019,type:"All rights",territory:"World",trigger:"None / perpetual",notice:"© 2019 Geeta Dharmarajan · Illustrations © 2019 Atanu Roy"},royalty:{ratePrint:10,base:"MRP (cover price)"}},
     {title:"Nani Ki Kahaniyan",language:"Hindi",category:"Children",age:"3+",author:"Mamta Nainy",illustrator:"Wikimedia Commons",yearPub:2017,mrp:150,status:"In Print",themes:["Folk tales","Family"],blurbShort:"दादी-नानी की कहानियों का संग्रह — हर शाम एक नई कहानी।",isbn:"9788189934668"},
@@ -728,6 +757,31 @@ function loadSample(){
   toast("Sample titles loaded — explore freely, then erase when ready");
 }
 
+/* ---------- public mode ---------- */
+async function loadPublicData(){
+  try{
+    const r=await fetch("catalog-public.json",{cache:"no-store"});
+    if(!r.ok)throw 0;
+    const d=await r.json();
+    if(d&&Array.isArray(d.titles))db={meta:{seq:0},titles:d.titles,activity:[]};
+  }catch(_){/* not published yet — public sees empty catalogue */}
+}
+function enterPublicMode(){
+  currentUser=null;
+  document.body.classList.add("role-public");
+  document.body.classList.remove("can-admin","role-viewer");
+  $("loginScreen").classList.add("gone");
+  $("staffSignIn").style.display="";
+  const w=$("whoami");if(w)w.innerHTML="";
+  loadPublicData().then(()=>{renderCat();renderGen();go("cat")});
+}
+function showLogin(){
+  $("loginScreen").classList.remove("gone");
+  if(getUsers().length===0){$("setupCard").style.display="";$("loginCard").style.display="none"}
+  else{$("setupCard").style.display="none";$("loginCard").style.display=""}
+}
+function hideLogin(){$("loginScreen").classList.add("gone")}
+
 /* ---------- boot ---------- */
 async function initApp(){
   const ok=await idbOpen();
@@ -742,14 +796,18 @@ async function initApp(){
 (function(){
   const d=$("loginDomain");
   if(d)d.textContent=location.hostname||"books.katha.org";
+  // migration: ensure at least one Superadmin exists among staff accounts
+  const us=getUsers();
+  if(us.length&&!us.some(u=>u.role==="Superadmin"&&!u.disabled)){
+    const cand=us.filter(u=>u.role==="Admin"&&!u.disabled).sort((a,b)=>(a.createdAt||0)-(b.createdAt||0))[0]||us.find(u=>!u.disabled);
+    if(cand){cand.role="Superadmin";setUsers(us)}
+  }
   const u=sessionUser();
   if(u){
     currentUser=u;
     $("loginScreen").classList.add("gone");
     applyRole();initApp();
-  }else if(getUsers().length===0){
-    $("setupCard").style.display="";
   }else{
-    $("loginCard").style.display="";
+    enterPublicMode();
   }
 })();
