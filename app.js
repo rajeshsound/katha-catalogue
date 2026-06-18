@@ -289,28 +289,38 @@ function fillSelect(sel,opts,keep){const cur=sel.value;sel.innerHTML=keep+opts.m
 function refreshFilters(){
   const langs=[...new Set(db.titles.map(t=>t.language).filter(Boolean))].sort();
   const cats=[...new Set(db.titles.map(t=>t.category).filter(Boolean))].sort();
+  const sdgs=[...new Set(db.titles.flatMap(t=>t.sdgs||[]))].sort((a,b)=>{
+    const na=parseInt(String(a).match(/\d+/)),nb=parseInt(String(b).match(/\d+/));
+    if(!isNaN(na)&&!isNaN(nb))return na-nb;return String(a).localeCompare(String(b));
+  });
+  const cbses=[...new Set(db.titles.flatMap(t=>t.cbseFrameworks||[]))].sort();
   fillSelect($("fLang"),langs,'<option value="">All languages</option>');
   fillSelect($("fCatg"),cats,'<option value="">All categories</option>');
+  fillSelect($("fSdg"),sdgs,'<option value="">All SDGs</option>');
+  fillSelect($("fCbse"),cbses,'<option value="">All CBSE frameworks</option>');
   fillSelect($("gLang"),langs,'<option value="">All</option>');
   fillSelect($("gCatg"),cats,'<option value="">All</option>');
 }
 function renderCat(){
   refreshFilters();
-  const q=($("q").value||"").toLowerCase(),L=$("fLang").value,C=$("fCatg").value,S=$("fStat").value;
+  const q=($("q").value||"").toLowerCase(),L=$("fLang").value,C=$("fCatg").value,S=$("fStat").value,G=$("fSdg").value,B=$("fCbse").value;
   const rows=db.titles.filter(t=>
-    (!L||t.language===L)&&(!C||t.category===C)&&(!S||t.status===S)&&
+    (!L||t.language===L)&&(!C||t.category===C)&&(!S||t.status===S)&&(!G||(t.sdgs||[]).includes(G))&&(!B||(t.cbseFrameworks||[]).includes(B))&&
     (!q||[t.title,t.englishTitle,t.author,t.illustrator,t.isbn,(t.sdgs||[]).join(" "),(t.cbseFrameworks||[]).join(" ")].join(" ").toLowerCase().includes(q))
   ).sort((a,b)=>String(a.title).localeCompare(b.title));
   $("catCount").textContent=rows.length+" of "+db.titles.length+" titles";
+  const cbseShort=s=>{const m=String(s).match(/\(([^)]+)\)/);return m?m[1]:s};
   $("catBody").innerHTML=rows.map(t=>{const rs=rightsState(t);return `
     <tr class="rowlink" onclick="openTitle('${t.id}')">
       <td><div style="display:flex;gap:10px;align-items:flex-start">${coverSrc(t)?`<img src="${esc(coverSrc(t))}" style="width:30px;height:40px;object-fit:cover;border-radius:4px;flex-shrink:0" loading="lazy">`:""}<div><div class="t-title">${esc(t.title)}</div><div class="t-sub">${esc(t.englishTitle&&t.englishTitle!==t.title?t.englishTitle:"")}${t.isbn?" · "+esc(t.isbn):""}</div></div></div></td>
       <td>${esc(t.language||"")}</td><td>${esc(t.category||"")}${t.age?" · "+esc(t.age):""}</td>
       <td><div class="t-sub" style="font-size:13px;color:var(--ink-2)">${esc(t.author||"")}${t.illustrator?"<br>Illus: "+esc(t.illustrator):""}</div></td>
       <td>${t.mrp?"₹"+t.mrp:""}</td>
+      <td>${(t.sdgs||[]).slice(0,3).map(s=>`<span class="tag teal" style="margin:0 3px 3px 0;font-size:11px">${esc(s.replace(/^SDG\s*\d+:\s*/,""))}</span>`).join("")}${(t.sdgs||[]).length>3?`<span class="t-sub">+${t.sdgs.length-3} more</span>`:""}</td>
+      <td>${(t.cbseFrameworks||[]).slice(0,2).map(c=>`<span class="tag amber" style="margin:0 3px 3px 0;font-size:11px">${esc(cbseShort(c))}</span>`).join("")}${(t.cbseFrameworks||[]).length>2?`<span class="t-sub">+${t.cbseFrameworks.length-2} more</span>`:""}</td>
       <td><span class="tag ${t.status==="In Print"?"green":t.status==="Out of Print"?"red":"amber"}">${esc(t.status||"")}</span></td>
       <td><span class="tag ${rs.tag}">${esc(rs.label)}</span></td>
-    </tr>`}).join("")||`<tr><td colspan="7"><div class="empty"><div class="big">No titles yet</div>Import your Excel files from Data &amp; backup, or add a title.</div></td></tr>`;
+    </tr>`}).join("")||`<tr><td colspan="9"><div class="empty"><div class="big">No titles yet</div>Import your Excel files from Data &amp; backup, or add a title.</div></td></tr>`;
 }
 
 /* ---------- rights view ---------- */
@@ -560,6 +570,7 @@ document.addEventListener("keydown",e=>{
 function getInc(){
   const g=id=>{const e=$(id);return e?e.checked:true};
   return{cover:g("incCover"),price:g("incPrice"),isbn:g("incIsbn"),contrib:g("incContrib"),ped:g("incPed"),specs:$("incSpecs")&&$("incSpecs").checked,
+    sdg:$("incSdg")&&$("incSdg").checked,cbse:$("incCbse")&&$("incCbse").checked,
     summary:($("incSummary")&&$("incSummary").value)||"short"};
 }
 function catHTML(rows){
@@ -571,12 +582,14 @@ function catHTML(rows){
     const meta=inc.contrib?[t.author&&("By "+t.author),t.illustrator&&("Illustrated by "+t.illustrator),t.translator&&("Translated by "+t.translator)].filter(Boolean).join(" · "):"";
     const ped=inc.ped?[t.series,(t.grades||[]).length?("Grades "+t.grades.join(", ")):"",(t.subjects||[]).slice(0,3).join(", "),(t.skills||[]).slice(0,3).join(", "),(t.themes||[]).slice(0,3).join(", "),t.bigIdea?("Big idea: "+t.bigIdea):"",t.readingLevel].filter(Boolean).join("  ·  "):"";
     const specs=inc.specs?[t.pages?(t.pages+" pp"):"",(t.dimL&&t.dimB)?(t.dimL+" × "+t.dimB+(t.dimW?" × "+t.dimW:"")+" cm"):"",t.weight?(t.weight+" g"):"",t.printMethod].filter(Boolean).join("  ·  "):"";
+    const sdgLine=inc.sdg&&(t.sdgs||[]).length?"SDGs: "+t.sdgs.join(", "):"";
+    const cbseLine=inc.cbse&&(t.cbseFrameworks||[]).length?"CBSE: "+t.cbseFrameworks.join(", "):"";
     const meta2=[t.language,t.category&&(t.category+(t.age?" "+t.age:"")),inc.isbn&&t.isbn?("ISBN "+t.isbn):""].filter(Boolean).join("  ·  ");
     const summaryTxt=inc.summary==="none"?"":(inc.summary==="long"?(t.blurbLong||t.blurbShort):(t.blurbShort||""));
     if(genLayout==="compact"){
-      items+=`<div class="cat-item" style="padding:8px 0"><div class="spinebar"></div><div style="flex:1;display:flex;justify-content:space-between;gap:14px;align-items:baseline"><div><h4 style="font-size:14.5px;display:inline">${esc(t.title)}</h4>${meta?` <span class="meta" style="display:inline">— ${esc(meta)}</span>`:""}<div class="meta">${esc([meta2,ped].filter(Boolean).join("  ·  "))}</div></div><div class="price">${inc.price&&t.mrp?"₹"+t.mrp:""}</div></div></div>`;
+      items+=`<div class="cat-item" style="padding:8px 0"><div class="spinebar"></div><div style="flex:1;display:flex;justify-content:space-between;gap:14px;align-items:baseline"><div><h4 style="font-size:14.5px;display:inline">${esc(t.title)}</h4>${meta?` <span class="meta" style="display:inline">— ${esc(meta)}</span>`:""}<div class="meta">${esc([meta2,ped,sdgLine,cbseLine].filter(Boolean).join("  ·  "))}</div></div><div class="price">${inc.price&&t.mrp?"₹"+t.mrp:""}</div></div></div>`;
     }else{
-      items+=`<div class="cat-item"><div class="spinebar"></div>${inc.cover&&coverSrc(t)?`<img src="${esc(coverSrc(t))}" style="width:58px;height:78px;object-fit:cover;border-radius:5px;flex-shrink:0">`:""}<div style="flex:1"><div style="display:flex;justify-content:space-between;gap:14px"><h4>${esc(t.title)}</h4><div class="price">${inc.price&&t.mrp?"₹"+t.mrp:""}</div></div>${meta?`<div class="meta">${esc(meta)}</div>`:""}<div class="meta" style="color:var(--ink-3)">${esc(meta2)}</div>${ped?`<div class="meta" style="color:var(--ink-3)">${esc(ped)}</div>`:""}${specs?`<div class="meta" style="color:var(--ink-3)">${esc(specs)}</div>`:""}${summaryTxt?`<div class="blurb">${esc(summaryTxt)}</div>`:""}</div></div>`;
+      items+=`<div class="cat-item"><div class="spinebar"></div>${inc.cover&&coverSrc(t)?`<img src="${esc(coverSrc(t))}" style="width:58px;height:78px;object-fit:cover;border-radius:5px;flex-shrink:0">`:""}<div style="flex:1"><div style="display:flex;justify-content:space-between;gap:14px"><h4>${esc(t.title)}</h4><div class="price">${inc.price&&t.mrp?"₹"+t.mrp:""}</div></div>${meta?`<div class="meta">${esc(meta)}</div>`:""}<div class="meta" style="color:var(--ink-3)">${esc(meta2)}</div>${ped?`<div class="meta" style="color:var(--ink-3)">${esc(ped)}</div>`:""}${specs?`<div class="meta" style="color:var(--ink-3)">${esc(specs)}</div>`:""}${sdgLine?`<div class="meta" style="color:var(--ink-3)">${esc(sdgLine)}</div>`:""}${cbseLine?`<div class="meta" style="color:var(--ink-3)">${esc(cbseLine)}</div>`:""}${summaryTxt?`<div class="blurb">${esc(summaryTxt)}</div>`:""}</div></div>`;
     }
   });
   return `<div class="cat-head"><div class="eyebrow">Katha · Thematic catalogue</div><h1>${title}</h1><p>${sub?sub+" · ":""}${rows.length} titles · ${today}</p></div>${items||'<p style="color:var(--ink-3);padding:20px 0">No titles match the current filters.</p>'}<div class="cat-foot"><span>${foot}</span><span>Generated ${today}</span></div>`;

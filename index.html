@@ -272,9 +272,11 @@ body.role-public .pubbar{display:block}
         <select id="fLang" onchange="renderCat()"><option value="">All languages</option></select>
         <select id="fCatg" onchange="renderCat()"><option value="">All categories</option></select>
         <select id="fStat" onchange="renderCat()"><option value="">All statuses</option><option>In Print</option><option>Out of Print</option><option>Reprint Planned</option></select>
+        <select id="fSdg" onchange="renderCat()"><option value="">All SDGs</option></select>
+        <select id="fCbse" onchange="renderCat()"><option value="">All CBSE frameworks</option></select>
       </div>
       <div class="tbl-wrap"><table class="tbl"><thead><tr>
-        <th>Title</th><th>Language</th><th>Category</th><th>People</th><th>MRP</th><th>Status</th><th>Rights</th>
+        <th>Title</th><th>Language</th><th>Category</th><th>People</th><th>MRP</th><th>SDGs</th><th>CBSE</th><th>Status</th><th>Rights</th>
       </tr></thead><tbody id="catBody"></tbody></table></div>
     </section>
 
@@ -322,6 +324,8 @@ body.role-public .pubbar{display:block}
               <label class="inc"><input type="checkbox" id="incContrib" checked onchange="renderGen()"> Contributors</label>
               <label class="inc"><input type="checkbox" id="incPed" checked onchange="renderGen()"> Themes &amp; pedagogy</label>
               <label class="inc"><input type="checkbox" id="incSpecs" onchange="renderGen()"> Pages, size &amp; weight</label>
+              <label class="inc"><input type="checkbox" id="incSdg" onchange="renderGen()"> SDGs addressed</label>
+              <label class="inc"><input type="checkbox" id="incCbse" onchange="renderGen()"> CBSE frameworks</label>
             </div>
           </div>
           <div class="field"><label>Summary text</label><select id="incSummary" onchange="renderGen()">

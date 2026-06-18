@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Katha Catalogue — Setup Guide</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#F6F5F1;color:#22201C;font-size:15px;line-height:1.6;padding:24px 16px 60px}
+.wrap{max-width:800px;margin:0 auto}
+h1{font-size:22px;font-weight:600;color:#0A4F43;margin-bottom:4px}
+.sub{font-size:14px;color:#8C877C;margin-bottom:24px}
+.phase-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:20px}
+.ph{border:1px solid #E5E2DA;border-radius:10px;padding:12px 14px;cursor:pointer;background:#fff;transition:background .12s}
+.ph:hover{background:#F0EDE5}
+.ph.on{background:#fff;border:2px solid #185FA5}
+.ph-n{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:#8C877C;margin-bottom:3px}
+.ph-t{font-size:13px;font-weight:600;color:#22201C}
+.ph-d{font-size:11.5px;color:#5C5850;margin-top:2px}
+.panel{display:none}
+.panel.on{display:block}
+.step{display:flex;gap:14px;padding:14px 0;border-bottom:1px solid #EEECE5}
+.step:last-child{border-bottom:none}
+.sn{width:32px;height:32px;border-radius:50%;background:#EEECE5;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:#22201C;flex-shrink:0;margin-top:2px}
+.stitle{font-size:14.5px;font-weight:600;color:#22201C;margin-bottom:5px}
+.sdesc{font-size:13.5px;color:#5C5850;line-height:1.65}
+.sdesc b{color:#22201C;font-weight:600}
+.info{background:#E6F1FB;border-left:3px solid #378ADD;border-radius:0 8px 8px 0;padding:10px 14px;margin:8px 0;font-size:13px;color:#0C447C;line-height:1.6}
+.warn{background:#FAEEDA;border-left:3px solid #E8A33D;border-radius:0 8px 8px 0;padding:10px 14px;margin:8px 0;font-size:13px;color:#854F0B;line-height:1.6}
+.ok{background:#E9F2E2;border-left:3px solid #639922;border-radius:0 8px 8px 0;padding:10px 14px;margin:8px 0;font-size:13px;color:#3B6D11;line-height:1.6}
+code{font-family:ui-monospace,Menlo,monospace;background:#EEECE5;padding:2px 7px;border-radius:5px;font-size:12.5px;color:#22201C}
+.faq{border:1px solid #E5E2DA;border-radius:10px;overflow:hidden;margin-top:18px;background:#fff}
+.faq-q{width:100%;background:#fff;border:none;border-bottom:1px solid #EEECE5;padding:13px 16px;font-size:13.5px;font-weight:600;color:#22201C;text-align:left;cursor:pointer;display:flex;justify-content:space-between;align-items:center}
+.faq-q:last-of-type{border-bottom:none}
+.faq-q:hover{background:#F6F5F1}
+.faq-a{font-size:13px;color:#5C5850;padding:12px 16px;border-bottom:1px solid #EEECE5;display:none;line-height:1.65}
+.faq-a.on{display:block}
+.badge{font-size:11px;padding:2px 8px;border-radius:20px;font-weight:600;margin-left:6px}
+.b-done{background:#E9F2E2;color:#3B6D11}
+.b-time{background:#E6F1FB;color:#185FA5}
+@media(max-width:580px){.phase-bar{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>Katha Catalogue — Setup Guide</h1>
+<p class="sub">Deploy on books.katha.org · Add login · Import your data · Share with your team</p>
+
+<div class="phase-bar">
+  <div class="ph on" onclick="sw(0)"><div class="ph-n">Part A</div><div class="ph-t">Deploy on Netlify</div><div class="ph-d">10 min · free</div></div>
+  <div class="ph" onclick="sw(1)"><div class="ph-n">Part B</div><div class="ph-t">books.katha.org DNS</div><div class="ph-d">5 min · needs DNS access</div></div>
+  <div class="ph" onclick="sw(2)"><div class="ph-n">Part C</div><div class="ph-t">First login &amp; import</div><div class="ph-d">15 min · your Excel files</div></div>
+  <div class="ph" onclick="sw(3)"><div class="ph-n">Part D</div><div class="ph-t">Share with team</div><div class="ph-d">2 min</div></div>
+</div>
+
+<!-- PART A -->
+<div class="panel on" id="p0">
+<div class="ok" style="margin-bottom:16px"><b>Why Netlify?</b> It is the simplest way to put a web app online — you literally drag a folder onto the screen. Free, reliable, used by millions of organisations. No credit card, no server to manage, nothing to install.</div>
+<div class="step"><div class="sn">1</div><div><div class="stitle">Unzip the downloaded files <span class="badge b-done">already done</span></div><div class="sdesc">Unzip the <code>katha-catalogue-app.zip</code> file. You will see a folder called <code>katha-catalogue-app</code> with four files inside: <code>index.html</code>, <code>app.js</code>, <code>manifest.json</code>, <code>sw.js</code>. Keep this folder open — you will drag it in step 5.</div></div></div>
+<div class="step"><div class="sn">2</div><div><div class="stitle">Create a free Netlify account</div><div class="sdesc">Go to <b>netlify.com</b> → click <b>Sign up</b> → choose <b>Sign up with Email</b> → enter an email address and password → verify your email. Takes 2 minutes.<br><br>Use Katha's main email (info@katha.org or similar) so the account belongs to the organisation, not one person.</div></div></div>
+<div class="step"><div class="sn">3</div><div><div class="stitle">Go to Sites</div><div class="sdesc">After logging in, click <b>Sites</b> in the top navigation. Scroll to the bottom of the page — you will see a large area that says:<div class="info">Drag and drop your site output folder here</div>Leave this browser window open.</div></div></div>
+<div class="step"><div class="sn">4</div><div><div class="stitle">Drag the folder onto Netlify</div><div class="sdesc">Find the <code>katha-catalogue-app</code> folder on your computer. Drag the <b>entire folder</b> and drop it on that grey zone in the browser. Netlify uploads all four files. Progress bar → green tick. Takes about 20 seconds.<div class="warn"><b>Common mistake:</b> drag the folder itself, not the files inside it, and not the .zip file. If you see an error, try again with just the folder.</div></div></div></div>
+<div class="step"><div class="sn">5</div><div><div class="stitle">Your app is live</div><div class="sdesc">Netlify gives you a temporary address like <code>cheerful-oak-a3f1c2.netlify.app</code>. Click it. You should see the Katha login screen. Enter the default password <code>katha@books</code> to confirm it is working.<div class="ok">The app is now live. Part B connects it to books.katha.org. If you do not have DNS access today, use the Netlify address — it works identically.</div></div></div></div>
+</div>
+
+<!-- PART B -->
+<div class="panel" id="p1">
+<div class="sdesc" style="margin-bottom:16px;font-size:13px;color:#5C5850;line-height:1.65">This part changes one DNS record for katha.org. If Katha's website is managed by an IT partner or agency, forward them steps 2–4 only.</div>
+<div class="step"><div class="sn">1</div><div><div class="stitle">Copy your Netlify site address</div><div class="sdesc">In Netlify → click your site → <b>Site configuration</b> → <b>Domain management</b>. At the top is your address, e.g. <code>cheerful-oak-a3f1c2.netlify.app</code>. Copy it.</div></div></div>
+<div class="step"><div class="sn">2</div><div><div class="stitle">Add the custom domain in Netlify</div><div class="sdesc">Still in Domain management → click <b>Add a domain</b> → type <code>books.katha.org</code> → <b>Verify</b> → <b>Add domain</b>. Netlify will show "Awaiting External DNS" — that is normal, continue to the next step.</div></div></div>
+<div class="step"><div class="sn">3</div><div><div class="stitle">Add a CNAME record at your domain registrar</div><div class="sdesc">Log into wherever katha.org's DNS is managed — usually your domain registrar (GoDaddy, Namecheap, BigRock, Cloudflare, Hostinger) or a cPanel provided by your web host. Find <b>DNS Management</b> or <b>DNS Zone Editor</b>. Add one new record:<div class="info"><b>Type:</b> CNAME<br><b>Name / Host:</b> books<br><b>Value / Points to:</b> <i>your-netlify-address</i>.netlify.app<br><b>TTL:</b> 3600 (or leave default)</div>Save.</div></div></div>
+<div class="step"><div class="sn">4</div><div><div class="stitle">Wait — HTTPS is automatic</div><div class="sdesc">DNS changes take 5 minutes to 2 hours. Go back to Netlify → Domain management and watch the <code>books.katha.org</code> row. When a green padlock appears, Netlify has issued a free HTTPS certificate automatically. Your app is now live at <b>https://books.katha.org</b>.<div class="warn">If your domain is on Cloudflare, set the CNAME record to <b>DNS only</b> (grey cloud). Netlify handles HTTPS itself and the orange cloud causes a conflict.</div></div></div></div>
+</div>
+
+<!-- PART C -->
+<div class="panel" id="p2">
+<div class="step"><div class="sn">1</div><div><div class="stitle">Sign in with the default password</div><div class="sdesc">Go to <b>books.katha.org</b> (or your Netlify address). Enter: <code>katha@books</code>. Tick <b>Keep me logged in on this device for 30 days</b>. Click <b>Sign in</b>.</div></div></div>
+<div class="step"><div class="sn">2</div><div><div class="stitle">Change the password immediately</div><div class="sdesc">Click <b>Data &amp; backup</b> → scroll to <b>Password &amp; access</b>. Enter <code>katha@books</code> as the current password. Choose a new one (at least 8 characters). Confirm it. Click <b>Update password</b>.<div class="warn"><b>Do this before sharing the URL with anyone.</b> The default password is public — anyone who finds the URL and reads this guide knows it.</div></div></div></div>
+<div class="step"><div class="sn">3</div><div><div class="stitle">Import book details first</div><div class="sdesc">Still in <b>Data &amp; backup</b> → <b>Import from Excel</b> → click <b>Choose file</b> → select: <code>Katha Book details 441 titles.xlsx</code><br><br>Click <b>Import file</b>. Wait about 5 seconds. You will see: <i>"Imported: 441 new, 0 updated"</i>. Check the Dashboard — 441 titles, English and Hindi.</div></div></div>
+<div class="step"><div class="sn">4</div><div><div class="stitle">Import the PDF links file second</div><div class="sdesc">Import from Excel → choose <code>Katha All Book Master PDFs Link.xlsx</code> → <b>Import file</b>. Wait about 10 seconds. The notification will say something like <i>"Imported: 297 new, 441 updated"</i>. This adds Kannada and Tamil titles, English title mappings, ISBNs, and SharePoint PDF links. Dashboard will now show 730+ titles across 4 languages.</div></div></div>
+<div class="step"><div class="sn">5</div><div><div class="stitle">Take a backup immediately</div><div class="sdesc">Data &amp; backup → click <b>Full backup (.json)</b>. Save the file to SharePoint or Google Drive. Name it with today's date: <code>katha-backup-2026-06-12.json</code>.<div class="ok">Set a reminder to export a new backup every Friday. It takes 5 seconds. Under 1 MB for 700+ titles.</div></div></div></div>
+<div class="step"><div class="sn">6</div><div><div class="stitle">Review the Dashboard alerts</div><div class="sdesc">Click <b>Dashboard</b>. The <b>Needs attention</b> panel shows everything requiring action — Wikimedia Commons licences to verify, titles missing blurbs, titles with no rights data. Start with the Wikimedia ones: those affect what you can sell commercially.</div></div></div>
+</div>
+
+<!-- PART D -->
+<div class="panel" id="p3">
+<div class="step"><div class="sn">1</div><div><div class="stitle">Share the URL and password</div><div class="sdesc">Send the team the address <b>books.katha.org</b> and the password you just set. Everyone uses the same single password.<div class="warn">Keep the password private. Do not put it in a forwarded email chain or public group. A WhatsApp message to specific named people is fine.</div></div></div></div>
+<div class="step"><div class="sn">2</div><div><div class="stitle">Install as an app on phones and tablets</div><div class="sdesc">No App Store needed — installs directly from the browser.<br><br><b>iPhone / iPad (Safari):</b> Open books.katha.org in Safari → tap the Share button (box with arrow pointing up) → scroll down → tap <b>Add to Home Screen</b> → tap <b>Add</b>. The Katha icon appears on the home screen. Opens full-screen.<br><br><b>Android (Chrome):</b> Open books.katha.org → tap the three-dot menu → <b>Add to Home screen</b> → <b>Add</b>.<br><br><b>Desktop (Chrome or Edge):</b> Click the install icon in the address bar (computer with + symbol) → <b>Install</b>.<div class="ok">After installation, the app works offline — useful at book fairs, warehouses, or anywhere without reliable internet.</div></div></div></div>
+<div class="step"><div class="sn">3</div><div><div class="stitle">Designate one person as the catalogue keeper</div><div class="sdesc">Data is stored in the browser of each device. Edits on one device do not automatically appear on another. Designate one person (and one device) as the <b>master</b> for editing. Others read on their own devices by restoring the keeper's JSON backup.<br><br><b>Workflow:</b> Keeper edits → exports JSON backup → shares to SharePoint → others restore if they need a local offline copy.<div class="sdesc" style="margin-top:8px;font-size:12.5px;color:#8C877C">When multiple people need to edit from different devices simultaneously, that is when to move to Airtable or a Supabase backend (Phase 2). The Excel export from this app imports directly into both with no rework.</div></div></div></div>
+</div>
+
+<div class="faq">
+  <button class="faq-q" onclick="tf(this)">I don't have DNS access to katha.org — what do I do? <span>+</span></button>
+  <div class="faq-a">Use the Netlify address (e.g. cheerful-oak-a3f1c2.netlify.app) for now — it works identically. Forward the DNS steps (Part B, steps 2–4) to whoever manages your domain. Most Indian registrars (GoDaddy, BigRock, Namecheap, Hostinger) have a DNS manager that any IT-literate person can use in under 5 minutes.</div>
+  <button class="faq-q" onclick="tf(this)">I forgot the password — how do I reset it? <span>+</span></button>
+  <div class="faq-a">On the device where you last had access, open the browser, go to books.katha.org. Open the browser console: press <b>F12</b> on Windows, or <b>Cmd + Option + J</b> on Mac. Click the <b>Console</b> tab. Type or paste exactly this and press Enter: <code>localStorage.removeItem('katha_pw_hash')</code> — then refresh the page. The password resets to the default <code>katha@books</code> and you can sign in and set a new one.</div>
+  <button class="faq-q" onclick="tf(this)">Can two people edit at the same time from different devices? <span>+</span></button>
+  <div class="faq-a">No — not in this version. Data lives in each device's browser. Two people editing simultaneously on different devices will have diverging data. Use the keeper model: one person edits, exports a JSON backup, others import it. When simultaneous multi-device editing becomes necessary, that is the trigger to move to the Airtable or Supabase Phase 2 plan.</div>
+  <button class="faq-q" onclick="tf(this)">Is my catalogue data safe? Does Netlify see my data? <span>+</span></button>
+  <div class="faq-a">No — Netlify hosts only the app's code files, not your data. Your catalogue, rights records, and royalty figures are stored exclusively in the browser on the device you use. Nothing is transmitted to Netlify's servers. The only copy that travels is the JSON backup you export — and you control where you save that.</div>
+  <button class="faq-q" onclick="tf(this)">The import says "0 new, 0 updated" — what went wrong? <span>+</span></button>
+  <div class="faq-a">Most likely cause: you chose the wrong file, or you chose the .zip file instead of the .xlsx file. The file must end in <code>.xlsx</code> and must be one of the three Katha source files. If the right file still gives 0, open it in Excel, re-save it as .xlsx (File → Save As → Excel Workbook), and import the fresh copy. The importer looks for a column named "Title" within the first 5 rows of each sheet.</div>
+  <button class="faq-q" onclick="tf(this)">How do I update the app when a new version is released? <span>+</span></button>
+  <div class="faq-a">Download the new files, unzip, drag the folder onto Netlify again — same as the first deployment. Netlify replaces the old files automatically. Your data is completely unaffected — it lives in the browser, not in the code files. Everyone gets the update the next time they visit or refresh the page.</div>
+</div>
+</div>
+
+<script>
+function sw(i){
+  document.querySelectorAll('.ph').forEach((p,j)=>p.classList.toggle('on',j===i));
+  document.querySelectorAll('.panel').forEach((p,j)=>p.classList.toggle('on',j===i));
+}
+function tf(btn){
+  const a=btn.nextElementSibling;
+  const open=a.classList.toggle('on');
+  btn.querySelector('span').textContent=open?'−':'+';
+}
+</script>
+</body>
+</html>
