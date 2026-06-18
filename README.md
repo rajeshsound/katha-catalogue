@@ -9,14 +9,17 @@ One small web app, no servers, no subscriptions, no software company required.
 - **Rights & royalty** — copyright holder, rights type, territory, expiry alerts,
   CC/Wikimedia licence flags, royalty entitlements (rates, base, advances)
 - **Generate catalogue** — searchable filters across Themes, Series, Big ideas,
-  Grades, Subjects, Skills and SPICE, plus a search-everything box. Choose what
-  each entry includes: cover image, summary (catalog summary or full story
-  description), price, ISBN, contributors, pedagogy line, and pages/size/weight.
-  Print, save as PDF, or export a standalone HTML page
+  Grades, Subjects, Skills, SPICE, SDGs and CBSE frameworks, plus a
+  search-everything box. Choose what each entry includes: cover image, summary
+  (catalog summary or full story description), price, ISBN, contributors,
+  pedagogy line, and pages/size/weight. Print, save as PDF, or export a
+  standalone HTML page
 - **Import** — reads Katha's existing Excel files directly, including the
   Master Backlist 2026 Enriched format (Themes/Keywords, Big Idea, Subjects,
   Skills, SPICE, Grade/Class, Age Group, Reading Level, ViBGYOR, dimensions,
-  weight, pages, Catalog Summary, Story Description, Portal Link). Recognises your real
+  weight, pages, Catalog Summary, Story Description, Portal Link, SDGs
+  Addressed, How It Addresses the SDGs, CBSE Frameworks, How CBSE Frameworks
+  Connect). Recognises your real
   column headings (Title, Lang, Author, Illustrator, Availability, Price,
   ISBN No., Pdf Link…), finds the header row automatically, extracts real
   SharePoint URLs from PDF link cells, and de-duplicates across sheets

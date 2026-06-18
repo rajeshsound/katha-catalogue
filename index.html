@@ -312,6 +312,8 @@ body.role-public .pubbar{display:block}
           <div class="field"><label>Subjects (any of)</label><div class="facet" id="fx_subjects"></div></div>
           <div class="field"><label>Skills (any of)</label><div class="facet" id="fx_skills"></div></div>
           <div class="field"><label>SPICE (any of)</label><div class="facet" id="fx_spice"></div></div>
+          <div class="field"><label>SDGs (any of)</label><div class="facet" id="fx_sdgs"></div></div>
+          <div class="field"><label>CBSE frameworks (any of)</label><div class="facet" id="fx_cbse"></div></div>
           <div class="field"><label>Include in catalogue</label>
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 10px;font-size:13px">
               <label class="inc"><input type="checkbox" id="incCover" checked onchange="renderGen()"> Cover images</label>
@@ -471,6 +473,10 @@ body.role-public .pubbar{display:block}
         <div class="field"><label>Reading level</label><input id="f_readlevel" placeholder="Level-1"></div>
         <div class="field"><label>ViBGYOR level</label><input id="f_vibgyor" placeholder="Green"></div>
       </div>
+      <div class="field"><label>SDGs addressed (comma separated)</label><input id="f_sdgs" placeholder="SDG 4: Quality Education, SDG 13: Climate Action"></div>
+      <div class="field"><label>How it addresses the SDGs</label><textarea id="f_sdgnotes" rows="2"></textarea></div>
+      <div class="field"><label>CBSE frameworks (comma separated)</label><input id="f_cbse" placeholder="Art-Integrated Learning (AIL), SEWA"></div>
+      <div class="field"><label>How CBSE frameworks connect</label><textarea id="f_cbsenotes" rows="2"></textarea></div>
       <div class="field"><label>Short blurb (~50 words, used in catalogues)</label><textarea id="f_blurb" rows="3"></textarea></div>
       <div class="field"><label>Story description (full summary)</label><textarea id="f_blurblong" rows="4"></textarea></div>
       <div class="grid2">

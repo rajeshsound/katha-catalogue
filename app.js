@@ -299,7 +299,7 @@ function renderCat(){
   const q=($("q").value||"").toLowerCase(),L=$("fLang").value,C=$("fCatg").value,S=$("fStat").value;
   const rows=db.titles.filter(t=>
     (!L||t.language===L)&&(!C||t.category===C)&&(!S||t.status===S)&&
-    (!q||[t.title,t.englishTitle,t.author,t.illustrator,t.isbn].join(" ").toLowerCase().includes(q))
+    (!q||[t.title,t.englishTitle,t.author,t.illustrator,t.isbn,(t.sdgs||[]).join(" "),(t.cbseFrameworks||[]).join(" ")].join(" ").toLowerCase().includes(q))
   ).sort((a,b)=>String(a.title).localeCompare(b.title));
   $("catCount").textContent=rows.length+" of "+db.titles.length+" titles";
   $("catBody").innerHTML=rows.map(t=>{const rs=rightsState(t);return `
@@ -363,6 +363,7 @@ function openTitle(id,tab){
   set("f_year",t.yearPub);set("f_mrp",t.mrp);set("f_stat",t.status||"In Print");
   set("f_reprints",(t.reprints||[]).map(r=>r.year+", "+r.qty).join("\n"));
   set("f_themes",(t.themes||[]).join(", "));set("f_bigidea",t.bigIdea);set("f_grades",(t.grades||[]).join(", "));set("f_subjects",(t.subjects||[]).join(", "));set("f_blurb",t.blurbShort);set("f_blurblong",t.blurbLong);set("f_skills",(t.skills||[]).join(", "));set("f_spice",(t.spice||[]).join(", "));set("f_readlevel",t.readingLevel);set("f_vibgyor",t.vibgyor);
+  set("f_sdgs",(t.sdgs||[]).join(", "));set("f_sdgnotes",t.sdgNotes);set("f_cbse",(t.cbseFrameworks||[]).join(", "));set("f_cbsenotes",t.cbseNotes);
   set("f_pages",t.pages);set("f_dimL",t.dimL);set("f_dimB",t.dimB);set("f_dimW",t.dimW);set("f_weight",t.weight);set("f_printm",t.printMethod);set("f_printer",t.printer);set("f_portal",t.portalLink);
   set("f_seot",t.seoTitle);set("f_seok",t.seoKeywords);set("f_seod",t.seoDesc);
   set("f_pdf",t.pdfLink);set("f_asin",t.asin);set("f_dist1",t.distPrimary);set("f_dist2",t.distOther);
@@ -402,6 +403,10 @@ function saveTitle(){
     blurbShort:$("f_blurb").value.trim(),blurbLong:$("f_blurblong").value.trim(),
     skills:$("f_skills").value.split(",").map(s=>s.trim()).filter(Boolean),
     spice:$("f_spice").value.split(",").map(s=>s.trim()).filter(Boolean),
+    sdgs:$("f_sdgs").value.split(",").map(s=>s.trim()).filter(Boolean),
+    sdgNotes:$("f_sdgnotes").value.trim(),
+    cbseFrameworks:$("f_cbse").value.split(",").map(s=>s.trim()).filter(Boolean),
+    cbseNotes:$("f_cbsenotes").value.trim(),
     readingLevel:$("f_readlevel").value.trim(),vibgyor:$("f_vibgyor").value.trim(),
     pages:+$("f_pages").value||null,dimL:+$("f_dimL").value||null,dimB:+$("f_dimB").value||null,dimW:+$("f_dimW").value||null,weight:+$("f_weight").value||null,
     printMethod:$("f_printm").value.trim(),printer:$("f_printer").value.trim(),portalLink:$("f_portal").value.trim(),
@@ -470,7 +475,7 @@ function coverRemove(){
 
 /* ---------- catalogue generator ---------- */
 function setLay(el){genLayout=el.dataset.lay;document.querySelectorAll("[data-lay]").forEach(c=>c.classList.toggle("on",c===el));renderGen()}
-const genSel={themes:new Set(),series:new Set(),bigIdeas:new Set(),grades:new Set(),subjects:new Set(),skills:new Set(),spice:new Set()};
+const genSel={themes:new Set(),series:new Set(),bigIdeas:new Set(),grades:new Set(),subjects:new Set(),skills:new Set(),spice:new Set(),sdgs:new Set(),cbseFrameworks:new Set()};
 const FACETS=[
   {key:"themes",el:"fx_themes",get:t=>t.themes||[],ph:"Search themes…",empty:"No themes yet — import your stock Excel file (it has a Theme column) or add themes in any title's Discovery section."},
   {key:"series",el:"fx_series",get:t=>t.series?[t.series]:[],ph:"Search series…",empty:"No series yet — import your stock file (its Category column holds series like ILR, Picture Book) or set Series on titles."},
@@ -478,7 +483,9 @@ const FACETS=[
   {key:"grades",el:"fx_grades",get:t=>t.grades||[],ph:"Search grades…",empty:"No grades yet — import your stock file (it has a Grade column) or add grades to titles.",gradeSort:true},
   {key:"subjects",el:"fx_subjects",get:t=>t.subjects||[],ph:"Search subjects…",empty:"No subjects yet — add subjects to titles in the Discovery section."},
   {key:"skills",el:"fx_skills",get:t=>t.skills||[],ph:"Search skills…",empty:"No skills yet — import the master backlist file or add skills to titles."},
-  {key:"spice",el:"fx_spice",get:t=>t.spice||[],ph:"Search SPICE…",empty:"No SPICE values yet — import the master backlist file or add them to titles."}
+  {key:"spice",el:"fx_spice",get:t=>t.spice||[],ph:"Search SPICE…",empty:"No SPICE values yet — import the master backlist file or add them to titles."},
+  {key:"sdgs",el:"fx_sdgs",get:t=>t.sdgs||[],ph:"Search SDGs…",empty:"No SDGs yet — import the enriched master backlist file (SDGs Addressed column) or add them to titles."},
+  {key:"cbseFrameworks",el:"fx_cbse",get:t=>t.cbseFrameworks||[],ph:"Search CBSE frameworks…",empty:"No CBSE frameworks yet — import the enriched master backlist file (CBSE Frameworks column) or add them to titles."}
 ];
 function facetCounts(f){
   const m=new Map(); // lower → {disp,count}
@@ -502,14 +509,16 @@ function genFiltered(){
   const has=(set,vals)=>set.size===0||vals.some(v=>set.has(String(v).toLowerCase()));
   return db.titles.filter(t=>
     (!L||t.language===L)&&(!C||t.category===C)&&(!S||t.status===S)&&
-    (!q||[t.title,t.englishTitle,t.author,t.illustrator,t.translator,t.series,t.bigIdea,t.blurbShort,t.isbn,(t.themes||[]).join(" "),(t.subjects||[]).join(" "),(t.grades||[]).join(" "),(t.skills||[]).join(" "),(t.spice||[]).join(" "),t.readingLevel,t.vibgyor].join(" ").toLowerCase().includes(q))&&
+    (!q||[t.title,t.englishTitle,t.author,t.illustrator,t.translator,t.series,t.bigIdea,t.blurbShort,t.isbn,(t.themes||[]).join(" "),(t.subjects||[]).join(" "),(t.grades||[]).join(" "),(t.skills||[]).join(" "),(t.spice||[]).join(" "),t.readingLevel,t.vibgyor,(t.sdgs||[]).join(" "),(t.cbseFrameworks||[]).join(" ")].join(" ").toLowerCase().includes(q))&&
     has(genSel.themes,t.themes||[])&&
     has(genSel.series,t.series?[t.series]:[])&&
     has(genSel.bigIdeas,t.bigIdea?[t.bigIdea]:[])&&
     has(genSel.grades,t.grades||[])&&
     has(genSel.subjects,t.subjects||[])&&
     has(genSel.skills,t.skills||[])&&
-    has(genSel.spice,t.spice||[])
+    has(genSel.spice,t.spice||[])&&
+    has(genSel.sdgs,t.sdgs||[])&&
+    has(genSel.cbseFrameworks,t.cbseFrameworks||[])
   ).sort((a,b)=>String(a.title).localeCompare(b.title));
 }
 function renderGenChips(){
@@ -598,7 +607,9 @@ const HEADMAP={title:["title","book title","bengali title","native title"],engli
   blurbShort:["catalog summary","catalogue summary","short blurb","blurb"],blurbLong:["story description","long description","full summary"],
   skills:["skills"],spice:["spice"],readingLevel:["reading level"],vibgyor:["vibgyor level"],
   pages:["total pages (excl. cover)","total pages","pages"],dimL:["length (cm)","length"],dimB:["breadth (cm)","breadth"],dimW:["width (cm)","spine width"],
-  weight:["weight (g)","wt","weight"],printMethod:["printing method"],printer:["printer name","printer"],portalLink:["portal link"],lastReprint:["last reprint year"],stock:["quantity","stock","qty"]};
+  weight:["weight (g)","wt","weight"],printMethod:["printing method"],printer:["printer name","printer"],portalLink:["portal link"],lastReprint:["last reprint year"],stock:["quantity","stock","qty"],
+  sdgs:["sdgs addressed","sdg","sdgs"],sdgNotes:["how it addresses the sdgs","how it addresses the sdg"],
+  cbseFrameworks:["cbse frameworks","cbse framework"],cbseNotes:["how cbse frameworks connect","how cbse framework connects"]};
 function mapRow(row){
   const out={};const keys=Object.keys(row);
   for(const[field,names]of Object.entries(HEADMAP)){
@@ -683,6 +694,10 @@ function importExcel(){
           if(m.portalLink&&/^https?:/i.test(String(m.portalLink).trim()))t.portalLink=String(m.portalLink).trim();
           if(m.lastReprint){const y=parseInt(m.lastReprint);if(y>1900){t.reprints=t.reprints||[];if(!t.reprints.some(r=>String(r.year)===String(y)))t.reprints.push({year:String(y),qty:""})}}
           if(m.kbId)t.kbId=String(m.kbId).trim();
+          if(m.sdgs)t.sdgs=String(m.sdgs).split(/[;,]/).map(s=>s.trim().replace(/\.+$/,"")).filter(Boolean);
+          if(m.sdgNotes)t.sdgNotes=String(m.sdgNotes).trim();
+          if(m.cbseFrameworks)t.cbseFrameworks=String(m.cbseFrameworks).split(/[;,]/).map(s=>s.trim().replace(/\.+$/,"")).filter(Boolean);
+          if(m.cbseNotes)t.cbseNotes=String(m.cbseNotes).trim();
           if(/wikimedia/i.test(t.illustrator||"")){t.rights=t.rights||{};t.rights.holderIl=t.rights.holderIl||"Wikimedia Commons";t.rights.cc=t.rights.cc||"Unknown — needs checking"}
           if(!t.status)t.status="In Print";
           if(!t.sku)t.sku=makeSKU(t);
@@ -703,6 +718,7 @@ function exportExcel(){
     Author:t.author,Illustrator:t.illustrator,Translator:t.translator,"Edited by":t.editor,
     "Year pub":t.yearPub,"MRP":t.mrp,Status:t.status,Themes:(t.themes||[]).join(", "),"Big idea":t.bigIdea,Grades:(t.grades||[]).join(", "),Subjects:(t.subjects||[]).join(", "),
     "Short blurb":t.blurbShort,"Story description":t.blurbLong,Skills:(t.skills||[]).join(", "),SPICE:(t.spice||[]).join(", "),"Reading level":t.readingLevel,"ViBGYOR":t.vibgyor,Pages:t.pages,"Length cm":t.dimL,"Breadth cm":t.dimB,"Width cm":t.dimW,"Weight g":t.weight,"Printing method":t.printMethod,Printer:t.printer,"Portal link":t.portalLink,"SEO title":t.seoTitle,"SEO keywords":t.seoKeywords,"SEO description":t.seoDesc,
+    "SDGs Addressed":(t.sdgs||[]).join("; "),"How It Addresses the SDGs":t.sdgNotes,"CBSE Frameworks":(t.cbseFrameworks||[]).join("; "),"How CBSE Frameworks Connect":t.cbseNotes,
     "PDF link":t.pdfLink,"Cover URL":t.coverUrl,ASIN:t.asin,"KB ID":t.kbId,"Primary distributor":t.distPrimary,"Other distributors":t.distOther,
     Awards:(t.awards||[]).map(a=>a.name+" "+a.year).join("; "),Reprints:(t.reprints||[]).map(r=>r.year+":"+r.qty).join("; ")}));
   const rts=db.titles.map(t=>{const r=t.rights||{};return{SKU:t.sku,Title:t.title,Language:t.language,
@@ -748,7 +764,7 @@ function exportAuditCSV(){
 }
 function exportPublic(){
   if(rank(currentUser)<2)return toast("Publishing needs an Admin account");
-  const PUB=["sku","title","englishTitle","language","baseLanguage","category","series","age","format","isbn","author","illustrator","translator","editor","yearPub","mrp","status","themes","bigIdea","grades","subjects","skills","spice","readingLevel","vibgyor","blurbShort","blurbLong","pages","dimL","dimB","dimW","weight","cover","coverUrl","portalLink","awards"];
+  const PUB=["sku","title","englishTitle","language","baseLanguage","category","series","age","format","isbn","author","illustrator","translator","editor","yearPub","mrp","status","themes","bigIdea","grades","subjects","skills","spice","sdgs","sdgNotes","cbseFrameworks","cbseNotes","readingLevel","vibgyor","blurbShort","blurbLong","pages","dimL","dimB","dimW","weight","cover","coverUrl","portalLink","awards"];
   const titles=db.titles.map(t=>{const o={};PUB.forEach(k=>{if(t[k]!==undefined&&t[k]!==""&&t[k]!==null)o[k]=t[k]});return o});
   const out={publishedAt:new Date().toISOString(),count:titles.length,titles};
   dl(new Blob([JSON.stringify(out)],{type:"application/json"}),"catalog-public.json");
