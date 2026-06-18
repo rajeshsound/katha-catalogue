@@ -294,18 +294,21 @@ function refreshFilters(){
     if(!isNaN(na)&&!isNaN(nb))return na-nb;return String(a).localeCompare(String(b));
   });
   const cbses=[...new Set(db.titles.flatMap(t=>t.cbseFrameworks||[]))].sort();
+  const prints=[...new Set(db.titles.map(t=>t.printMethod).filter(Boolean))].sort();
   fillSelect($("fLang"),langs,'<option value="">All languages</option>');
   fillSelect($("fCatg"),cats,'<option value="">All categories</option>');
   fillSelect($("fSdg"),sdgs,'<option value="">All SDGs</option>');
   fillSelect($("fCbse"),cbses,'<option value="">All CBSE frameworks</option>');
+  fillSelect($("fPrint"),prints,'<option value="">All print methods</option>');
   fillSelect($("gLang"),langs,'<option value="">All</option>');
   fillSelect($("gCatg"),cats,'<option value="">All</option>');
+  fillSelect($("gPrint"),prints,'<option value="">All</option>');
 }
 function renderCat(){
   refreshFilters();
-  const q=($("q").value||"").toLowerCase(),L=$("fLang").value,C=$("fCatg").value,S=$("fStat").value,G=$("fSdg").value,B=$("fCbse").value;
+  const q=($("q").value||"").toLowerCase(),L=$("fLang").value,C=$("fCatg").value,S=$("fStat").value,G=$("fSdg").value,B=$("fCbse").value,P=$("fPrint").value;
   const rows=db.titles.filter(t=>
-    (!L||t.language===L)&&(!C||t.category===C)&&(!S||t.status===S)&&(!G||(t.sdgs||[]).includes(G))&&(!B||(t.cbseFrameworks||[]).includes(B))&&
+    (!L||t.language===L)&&(!C||t.category===C)&&(!S||t.status===S)&&(!G||(t.sdgs||[]).includes(G))&&(!B||(t.cbseFrameworks||[]).includes(B))&&(!P||t.printMethod===P)&&
     (!q||[t.title,t.englishTitle,t.author,t.illustrator,t.isbn,(t.sdgs||[]).join(" "),(t.cbseFrameworks||[]).join(" ")].join(" ").toLowerCase().includes(q))
   ).sort((a,b)=>String(a.title).localeCompare(b.title));
   $("catCount").textContent=rows.length+" of "+db.titles.length+" titles";
@@ -374,7 +377,9 @@ function openTitle(id,tab){
   set("f_reprints",(t.reprints||[]).map(r=>r.year+", "+r.qty).join("\n"));
   set("f_themes",(t.themes||[]).join(", "));set("f_bigidea",t.bigIdea);set("f_grades",(t.grades||[]).join(", "));set("f_subjects",(t.subjects||[]).join(", "));set("f_blurb",t.blurbShort);set("f_blurblong",t.blurbLong);set("f_skills",(t.skills||[]).join(", "));set("f_spice",(t.spice||[]).join(", "));set("f_readlevel",t.readingLevel);set("f_vibgyor",t.vibgyor);
   set("f_sdgs",(t.sdgs||[]).join(", "));set("f_sdgnotes",t.sdgNotes);set("f_cbse",(t.cbseFrameworks||[]).join(", "));set("f_cbsenotes",t.cbseNotes);
-  set("f_pages",t.pages);set("f_dimL",t.dimL);set("f_dimB",t.dimB);set("f_dimW",t.dimW);set("f_weight",t.weight);set("f_printm",t.printMethod);set("f_printer",t.printer);set("f_portal",t.portalLink);
+  set("f_pages",t.pages);set("f_dimL",t.dimL);set("f_dimB",t.dimB);set("f_dimW",t.dimW);set("f_weight",t.weight);
+  const pmSel=$("f_printm");if(t.printMethod&&![...pmSel.options].some(o=>o.value===t.printMethod)){pmSel.add(new Option(t.printMethod,t.printMethod))}set("f_printm",t.printMethod);
+  set("f_printer",t.printer);set("f_portal",t.portalLink);
   set("f_seot",t.seoTitle);set("f_seok",t.seoKeywords);set("f_seod",t.seoDesc);
   set("f_pdf",t.pdfLink);set("f_asin",t.asin);set("f_dist1",t.distPrimary);set("f_dist2",t.distOther);
   pendingCover=undefined;$("f_coverfile").value="";set("f_coverurl",t.coverUrl);coverPreview();
@@ -514,11 +519,11 @@ function facetCounts(f){
   return arr;
 }
 function genFiltered(){
-  const L=$("gLang").value,C=$("gCatg").value,S=$("gStat").value;
+  const L=$("gLang").value,C=$("gCatg").value,S=$("gStat").value,P=($("gPrint")&&$("gPrint").value)||"";
   const q=($("gSearch")&&$("gSearch").value||"").trim().toLowerCase();
   const has=(set,vals)=>set.size===0||vals.some(v=>set.has(String(v).toLowerCase()));
   return db.titles.filter(t=>
-    (!L||t.language===L)&&(!C||t.category===C)&&(!S||t.status===S)&&
+    (!L||t.language===L)&&(!C||t.category===C)&&(!S||t.status===S)&&(!P||t.printMethod===P)&&
     (!q||[t.title,t.englishTitle,t.author,t.illustrator,t.translator,t.series,t.bigIdea,t.blurbShort,t.isbn,(t.themes||[]).join(" "),(t.subjects||[]).join(" "),(t.grades||[]).join(" "),(t.skills||[]).join(" "),(t.spice||[]).join(" "),t.readingLevel,t.vibgyor,(t.sdgs||[]).join(" "),(t.cbseFrameworks||[]).join(" ")].join(" ").toLowerCase().includes(q))&&
     has(genSel.themes,t.themes||[])&&
     has(genSel.series,t.series?[t.series]:[])&&
@@ -594,7 +599,7 @@ function catHTML(rows){
   });
   return `<div class="cat-head"><div class="eyebrow">Katha · Thematic catalogue</div><h1>${title}</h1><p>${sub?sub+" · ":""}${rows.length} titles · ${today}</p></div>${items||'<p style="color:var(--ink-3);padding:20px 0">No titles match the current filters.</p>'}<div class="cat-foot"><span>${foot}</span><span>Generated ${today}</span></div>`;
 }
-function renderGen(){renderGenChips();const rows=genFiltered();$("gCount").textContent=rows.length+" titles will appear in this catalogue.";$("gPrev").innerHTML=catHTML(rows)}
+function renderGen(){refreshFilters();renderGenChips();const rows=genFiltered();$("gCount").textContent=rows.length+" titles will appear in this catalogue.";$("gPrev").innerHTML=catHTML(rows)}
 function doPrint(){
   $("printArea").innerHTML='<div style="max-width:760px;margin:0 auto;font-family:var(--sans)">'+catHTML(genFiltered())+"</div>";
   document.body.classList.add("printing");

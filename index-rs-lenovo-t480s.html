@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Katha Catalogue & Rights</title>
 <meta name="description" content="Catalogue and copyright management for Katha Books">
-<link rel="manifest" href="../archive/katha-catalogue-app/manifest.json">
+<link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0E6E5C">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -274,6 +274,7 @@ body.role-public .pubbar{display:block}
         <select id="fStat" onchange="renderCat()"><option value="">All statuses</option><option>In Print</option><option>Out of Print</option><option>Reprint Planned</option></select>
         <select id="fSdg" onchange="renderCat()"><option value="">All SDGs</option></select>
         <select id="fCbse" onchange="renderCat()"><option value="">All CBSE frameworks</option></select>
+        <select id="fPrint" onchange="renderCat()"><option value="">All print methods</option></select>
       </div>
       <div class="tbl-wrap"><table class="tbl"><thead><tr>
         <th>Title</th><th>Language</th><th>Category</th><th>People</th><th>MRP</th><th>SDGs</th><th>CBSE</th><th>Status</th><th>Rights</th>
@@ -307,6 +308,7 @@ body.role-public .pubbar{display:block}
           <div class="field"><label>Language</label><select id="gLang" onchange="renderGen()"><option value="">All</option></select></div>
           <div class="field"><label>Category</label><select id="gCatg" onchange="renderGen()"><option value="">All</option></select></div>
           <div class="field"><label>Status</label><select id="gStat" onchange="renderGen()"><option value="">All</option><option selected>In Print</option><option>Out of Print</option><option>Reprint Planned</option></select></div>
+          <div class="field"><label>Print method</label><select id="gPrint" onchange="renderGen()"><option value="">All</option></select></div>
           <div class="field"><label>Themes (any of)</label><div class="facet" id="fx_themes"></div></div>
           <div class="field"><label>Series (any of)</label><div class="facet" id="fx_series"></div></div>
           <div class="field"><label>Big ideas (any of)</label><div class="facet" id="fx_bigIdeas"></div></div>
@@ -495,7 +497,7 @@ body.role-public .pubbar{display:block}
         <div class="field"><label>Breadth (cm)</label><input id="f_dimB" type="number" step="0.1" min="0"></div>
         <div class="field"><label>Spine width (cm)</label><input id="f_dimW" type="number" step="0.1" min="0"></div>
         <div class="field"><label>Weight (g)</label><input id="f_weight" type="number" min="0"></div>
-        <div class="field"><label>Printing method</label><input id="f_printm" placeholder="Offset / Digital / Repro"></div>
+        <div class="field"><label>Printing method</label><select id="f_printm"><option value="">—</option><option>Offset</option><option>Digital</option><option>Repro</option><option>Portal-ILR</option></select></div>
       </div>
       <div class="field"><label>Printer name</label><input id="f_printer"></div>
       <div class="sect">Cover image</div>
@@ -566,6 +568,6 @@ body.role-public .pubbar{display:block}
 <div id="printArea"></div>
 <div class="toast" id="toast"></div>
 
-<script src="../archive/katha-catalogue-app/app.js"></script>
+<script src="app.js"></script>
 </body>
 </html>
