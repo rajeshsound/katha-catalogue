@@ -31,8 +31,8 @@ One small web app, no servers, no subscriptions, no software company required.
 ## Deploy to GitHub Pages (one time, ~5 minutes)
 
 1. Go to github.com → New repository → name it `katha-catalogue` → Public → Create
-2. Click "uploading an existing file" and drag in these four files:
-   `index.html`, `app.js`, `manifest.json`, `sw.js`
+2. Click "uploading an existing file" and drag in these three files:
+   `index.html`, `app.js`, `manifest.json`
 3. Commit the files
 4. Repository Settings → Pages → Source: "Deploy from a branch" →
    Branch: `main`, folder `/ (root)` → Save
@@ -41,8 +41,22 @@ One small web app, no servers, no subscriptions, no software company required.
 
 ### Install on phones and tablets
 Open the URL in Safari (iPhone/iPad) or Chrome (Android) →
-Share → **Add to Home Screen**. It opens full-screen like an app and
-works offline after the first visit.
+Share → **Add to Home Screen**. It opens full-screen like an app.
+Your data lives in the browser's local storage and stays on the device;
+the app loads fresh from GitHub each time it is opened (online).
+
+### Updating the app later
+When you upload a new `app.js` or `index.html` to GitHub, edit one line
+in `index.html` and bump the version date so browsers fetch the new code
+instead of a stale copy:
+
+```html
+<script src="app.js?v=2026-06-18"></script>
+```
+
+Change `2026-06-18` to the new date each time you deploy a change.
+That is the only step needed — there is no service worker or offline
+cache to clear anymore.
 
 ## First-time setup
 
@@ -95,4 +109,3 @@ in the Excel export is what you hand to accounts.
 | `index.html` | The whole interface |
 | `app.js` | All logic — storage, import/export, rights flags, generator |
 | `manifest.json` | Makes it installable as an app |
-| `sw.js` | Makes it work offline |

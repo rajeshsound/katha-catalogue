@@ -885,8 +885,12 @@ async function initApp(){
   db.titles=db.titles.filter(t=>{const x=String(t.title||"").trim();return x.length>=2&&!/^\(?blank\)?(\s*total)?$/i.test(x)&&!/^(grand\s+)?total$/i.test(x)});
   if(db.titles.length!==before)persist();
   renderDash();renderCat();renderRights();renderGen();
-  if("serviceWorker"in navigator&&location.protocol==="https:")
-    navigator.serviceWorker.register("sw.js").catch(()=>{});
+  // No service worker. Actively remove any previously-registered SW and its caches
+  // so older cached versions can never shadow a fresh deploy again.
+  if("serviceWorker"in navigator){
+    navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>r.unregister())).catch(()=>{});
+    if(window.caches&&caches.keys)caches.keys().then(ks=>ks.forEach(k=>caches.delete(k))).catch(()=>{});
+  }
 }
 (function(){
   const d=$("loginDomain");
