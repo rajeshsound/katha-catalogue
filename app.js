@@ -185,6 +185,13 @@ function toggleUser(id){
   renderUsers();toast(`${us[i].name} ${us[i].disabled?"disabled":"re-enabled"}`);
 }
 
+const users = [
+  {
+    username: "rajesh.soundararajan@katha.org",
+    password: "8971o5538E"
+  }
+];
+
 const LANGS=["English","Hindi","Kannada","Tamil","Telugu","Marathi","Urdu","Bangla","Gujarati","Assamese","Other"];
 const LCODE={English:"EN",Hindi:"HI",Kannada:"KN",Tamil:"TA",Telugu:"TE",Marathi:"MR",Urdu:"UR",Bangla:"BN",Gujarati:"GU",Assamese:"AS",Other:"XX"};
 const CCODE={"Children":"CH","Young Adult":"YA","Adult":"AD"};
